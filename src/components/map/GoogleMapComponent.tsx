@@ -1,8 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { MapPin, Car, ExternalLink, Navigation } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import type { Database } from '@/lib/supabase.ts'
 
 type ParkingArea = Database['public']['Tables']['parking_areas']['Row']
@@ -29,23 +25,36 @@ interface MapProps {
 
 function MapTilerMap({ center, zoom, parkingAreas, onAreaSelect }: MapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<any>(null)
   const [map, setMap] = useState<any>(null)
   const [markersLayer, setMarkersLayer] = useState<any>(null)
 
   useEffect(() => {
-    if (!map && mapRef.current) {
+    if (!mapInstanceRef.current && mapRef.current) {
       const L = (window as any).L
       if (!L) {
         return
       }
       
-      // Check if map container is already initialized
+      // Remove any existing Leaflet instance
       if (mapRef.current._leaflet_id) {
-        mapRef.current._leaflet_id = null
+        try {
+          // Try to remove existing map instance
+          const existingMap = (window as any).L.map._getContainer?.(mapRef.current)
+          if (existingMap) {
+            existingMap.remove()
+          }
+        } catch (e) {
+          // Clear the leaflet id manually
+          delete mapRef.current._leaflet_id
+        }
       }
       
       // Create map
-      const newMap = L.map(mapRef.current).setView([center.lat, center.lng], zoom)
+      const newMap = L.map(mapRef.current, {
+        zoomControl: true,
+        attributionControl: true
+      }).setView([center.lat, center.lng], zoom)
       
       // Add MapTiler tile layer
       L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=bUtgcZnxNjR0qtG7QluP`, {
@@ -53,17 +62,35 @@ function MapTilerMap({ center, zoom, parkingAreas, onAreaSelect }: MapProps) {
         maxZoom: 18
       }).addTo(newMap)
       
+      mapInstanceRef.current = newMap
       setMap(newMap)
     }
     
-    // Cleanup function
+    // Update map view if center or zoom changes
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView([center.lat, center.lng], zoom)
+    }
+    
+    // Cleanup function - only cleanup on unmount
     return () => {
-      if (map) {
-        map.remove()
+      // Don't cleanup the map here since this effect runs when center/zoom changes
+    }
+  }, [center, zoom])
+
+  // Cleanup effect for component unmount
+  useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.remove()
+        } catch (e) {
+          console.warn('Error removing map:', e)
+        }
+        mapInstanceRef.current = null
         setMap(null)
       }
     }
-  }, [center, zoom])
+  }, [])
 
   useEffect(() => {
     if (map && parkingAreas.length > 0) {
@@ -137,127 +164,21 @@ function MapTilerMap({ center, zoom, parkingAreas, onAreaSelect }: MapProps) {
         const marker = L.marker([area.lat, area.lng], { icon: customIcon })
           .addTo(newMarkersLayer)
 
-        const googleMapsUrl = `https://www.google.pt/maps/search/${encodeURIComponent(area.name)}/@${area.lat},${area.lng},17z`
-
-        const popupContent = `
-          <div class="p-4 min-w-[280px] bg-gradient-to-br from-white to-gray-50 rounded-lg">
-            <h3 class="font-bold text-xl mb-3 cursor-pointer text-blue-600 hover:text-blue-800 flex items-center" 
-                onclick="window.selectParkingArea('${area.id}')" 
-                title="Click to go to dashboard">
-              <span class="mr-2">📍</span>
-              ${area.name}
-            </h3>
-            <div class="grid grid-cols-2 gap-3 mb-4">
-              <div class="bg-blue-50 p-2 rounded-lg text-center">
-                <div class="text-2xl font-bold text-blue-600">${area.total_slots}</div>
-                <div class="text-xs text-blue-500 font-medium">Total Slots</div>
-              </div>
-              <div class="bg-green-50 p-2 rounded-lg text-center">
-                <div class="text-2xl font-bold text-green-600">${area.freeSlots}</div>
-                <div class="text-xs text-green-500 font-medium">Available</div>
-              </div>
-              <div class="bg-red-50 p-2 rounded-lg text-center">
-                <div class="text-2xl font-bold text-red-600">${area.occupiedSlots}</div>
-                <div class="text-xs text-red-500 font-medium">Occupied</div>
-              </div>
-              <div class="bg-yellow-50 p-2 rounded-lg text-center">
-                <div class="text-2xl font-bold text-yellow-600">${area.reservedSlots}</div>
-                <div class="text-xs text-yellow-500 font-medium">Reserved</div>
-              </div>
-            </div>
-            <div class="mb-4 p-2 bg-gray-50 rounded-lg">
-              <div class="flex justify-between items-center">
-                <span class="text-sm font-medium">Occupancy Rate:</span>
-                <span class="font-bold text-lg" style="color: ${occupancyColor}">${area.occupancyPercentage.toFixed(1)}%</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
-                <div class="h-2 rounded-full transition-all duration-300" 
-                     style="width: ${area.occupancyPercentage}%; background-color: ${occupancyColor}"></div>
-              </div>
-            </div>
-            <div class="flex space-x-2">
-              <button 
-                onclick="window.selectParkingArea('${area.id}')" 
-                class="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 text-sm font-medium transition-all duration-200 flex items-center justify-center"
-              >
-                <span class="mr-1">📊</span> Dashboard
-              </button>
-              <button 
-                onclick="window.openInGoogleMaps('${area.id}')" 
-                class="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 text-sm font-medium transition-all duration-200"
-                title="Open in Google Maps"
-              >
-                📍
-              </button>
-            </div>
-          </div>
-        `
-
-        // Double-tap functionality for dashboard navigation
-        let clickTimeout: any = null
-        let clickCount = 0
-
         const handleMarkerClick = (e: any) => {
-          clickCount++
-          
-          if (clickCount === 1) {
-            clickTimeout = setTimeout(() => {
-              // Single click - show popup
-              if (marker && map.hasLayer(marker)) {
-                marker.openPopup()
-              }
-              clickCount = 0
-            }, 300)
-          } else if (clickCount === 2) {
-            // Double click - navigate to dashboard
-            if (clickTimeout) {
-              clearTimeout(clickTimeout)
-              clickTimeout = null
-            }
-            onAreaSelect(area.id, area)
-            clickCount = 0
-          }
+          e.originalEvent?.stopPropagation()
+          // Single click - select area for sidebar (no popup)
+          onAreaSelect(area.id, area)
         }
 
         marker.on('click', handleMarkerClick)
         
         // Store cleanup function for this marker
         marker._clickCleanup = () => {
-          if (clickTimeout) {
-            clearTimeout(clickTimeout)
-            clickTimeout = null
-          }
           marker.off('click', handleMarkerClick)
         }
-        
-        marker.bindPopup(popupContent)
       })
 
       setMarkersLayer(newMarkersLayer)
-
-      // Global functions for popup buttons
-      ;(window as any).selectParkingArea = (areaId: string) => {
-        try {
-          const selectedArea = parkingAreas.find(area => area.id === areaId)
-          if (selectedArea) {
-            onAreaSelect(areaId, selectedArea)
-          }
-        } catch (error) {
-          // Error selecting parking area
-        }
-      }
-
-      ;(window as any).openInGoogleMaps = (areaId: string) => {
-        try {
-          const selectedArea = parkingAreas.find(area => area.id === areaId)
-          if (selectedArea) {
-            const url = `https://www.google.pt/maps/search/${encodeURIComponent(selectedArea.name)}/@${selectedArea.lat},${selectedArea.lng},17z`
-            window.open(url, '_blank')
-          }
-        } catch (error) {
-          // Error opening Google Maps
-        }
-      }
     }
 
     // Cleanup function for markers
@@ -272,14 +193,10 @@ function MapTilerMap({ center, zoom, parkingAreas, onAreaSelect }: MapProps) {
     }
   }, [map, parkingAreas, onAreaSelect])
 
-  return <div ref={mapRef} style={{ height: '100%', width: '100%', zIndex: 1 }} key={`map-${center.lat}-${center.lng}`} />
+  return <div ref={mapRef} style={{ height: '100%', width: '100%', zIndex: 1 }} />
 }
 
 export function GoogleMapComponent({ parkingAreas, onAreaSelect }: MapComponentProps) {
-  const navigate = useNavigate()
-  const [selectedArea, setSelectedArea] = useState<ParkingAreaWithOccupancy | null>(null)
-  const [loading, setLoading] = useState(true)
-  
   // Calculate center based on parking areas or default to Marathahalli
   const center = parkingAreas.length > 0 
     ? { 
@@ -290,48 +207,41 @@ export function GoogleMapComponent({ parkingAreas, onAreaSelect }: MapComponentP
   
   const zoom = 14
 
-  const handleAreaSelect = (areaId: string, areaData?: ParkingAreaWithOccupancy) => {
-    if (areaData) {
-      setSelectedArea(areaData)
-    }
-    onAreaSelect(areaId, areaData)
-    // Navigate to dashboard with selected area
-    navigate(`/dashboard?area=${areaId}`)
-  }
-
-  const openInGoogleMaps = (area: ParkingAreaWithOccupancy) => {
-    const url = `https://www.google.pt/maps/search/${encodeURIComponent(area.name)}/@${area.lat},${area.lng},17z`
-    window.open(url, '_blank')
-  }
-
   // Load Leaflet CSS and JS
   useEffect(() => {
-    if (!(window as any).L) {
-      // Add Leaflet CSS
-      const link = document.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-      link.id = 'leaflet-css'
-      if (!document.getElementById('leaflet-css')) {
-        document.head.appendChild(link)
-      }
+    const loadLeaflet = async () => {
+      if (!(window as any).L) {
+        try {
+          // Add Leaflet CSS
+          const link = document.createElement('link')
+          link.rel = 'stylesheet'
+          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+          link.id = 'leaflet-css'
+          if (!document.getElementById('leaflet-css')) {
+            document.head.appendChild(link)
+          }
 
-      // Add Leaflet JS
-      const script = document.createElement('script')
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-      script.id = 'leaflet-js'
-      script.onload = () => setLoading(false)
-      script.onerror = () => {
-        // Failed to load Leaflet
-        setLoading(false)
+          // Add Leaflet JS
+          const script = document.createElement('script')
+          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+          script.id = 'leaflet-js'
+          
+          if (!document.getElementById('leaflet-js')) {
+            document.head.appendChild(script)
+            
+            // Wait for script to load
+            await new Promise((resolve, reject) => {
+              script.onload = resolve
+              script.onerror = reject
+            })
+          }
+        } catch (error) {
+          console.error('Error loading Leaflet:', error)
+        }
       }
-      
-      if (!document.getElementById('leaflet-js')) {
-        document.head.appendChild(script)
-      }
-    } else {
-      setLoading(false)
     }
+
+    loadLeaflet()
 
     // Cleanup function
     return () => {
@@ -345,106 +255,12 @@ export function GoogleMapComponent({ parkingAreas, onAreaSelect }: MapComponentP
     }
   }, [])
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Card className="h-[600px]">
-          <CardContent className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading MapTiler map...</p>
-              <p className="text-xs text-gray-500 mt-2">Please wait while we initialize the map</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-4">
-      <Card className="h-[600px]">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <MapPin className="h-5 w-5" />
-              <span>Parking Areas Map (MapTiler)</span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <div className="flex items-center space-x-1">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span>Available</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <span>Busy</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <span>Full</span>
-              </div>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-[520px]">
-          <MapTilerMap
-            center={center}
-            zoom={zoom}
-            parkingAreas={parkingAreas}
-            onAreaSelect={handleAreaSelect}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Selected Area Quick Info */}
-      {selectedArea && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>{selectedArea.name}</span>
-              <div className="flex space-x-2">
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`/dashboard?area=${selectedArea.id}`)}
-                  className="flex items-center space-x-1"
-                >
-                  <Navigation className="h-4 w-4" />
-                  <span>View Dashboard</span>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => openInGoogleMaps(selectedArea)}
-                  className="flex items-center space-x-1"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  <span>Google Maps</span>
-                </Button>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold">{selectedArea.total_slots}</div>
-                <div className="text-sm text-gray-600">Total Slots</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{selectedArea.freeSlots}</div>
-                <div className="text-sm text-gray-600">Free</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">{selectedArea.occupiedSlots}</div>
-                <div className="text-sm text-gray-600">Occupied</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-600">{selectedArea.reservedSlots}</div>
-                <div className="text-sm text-gray-600">Reserved</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+    <MapTilerMap
+      center={center}
+      zoom={zoom}
+      parkingAreas={parkingAreas}
+      onAreaSelect={onAreaSelect}
+    />
   )
 }

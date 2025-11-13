@@ -120,27 +120,30 @@ export function SystemStatusIndicator({ location, systemId }: StatusIndicatorPro
       case 'healthy':
         return {
           icon: CheckCircle,
-          color: 'text-green-600',
-          bgColor: 'bg-green-50',
-          borderColor: 'border-green-200',
+          color: 'text-green-600 dark:text-green-400',
+          bgColor: 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/40',
+          borderColor: 'border-green-200 dark:border-green-800',
+          glowColor: 'shadow-green-500/20',
           label: 'Online',
           description: 'Monitoring system is running normally'
         }
       case 'warning':
         return {
           icon: AlertCircle,
-          color: 'text-yellow-600',
-          bgColor: 'bg-yellow-50',
-          borderColor: 'border-yellow-200',
+          color: 'text-yellow-600 dark:text-yellow-400',
+          bgColor: 'bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/30 dark:to-yellow-900/40',
+          borderColor: 'border-yellow-200 dark:border-yellow-800',
+          glowColor: 'shadow-yellow-500/20',
           label: 'Warning',
           description: 'Last update was a few minutes ago'
         }
       case 'critical':
         return {
           icon: AlertCircle,
-          color: 'text-red-600',
-          bgColor: 'bg-red-50',
-          borderColor: 'border-red-200',
+          color: 'text-red-600 dark:text-red-400',
+          bgColor: 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/40',
+          borderColor: 'border-red-200 dark:border-red-800',
+          glowColor: 'shadow-red-500/20',
           label: 'Offline',
           description: 'Monitoring system appears to be down'
         }
@@ -156,13 +159,13 @@ export function SystemStatusIndicator({ location, systemId }: StatusIndicatorPro
       animate={{ opacity: 1, scale: 1 }}
       className="w-full"
     >
-      <Card className={`${config.bgColor} ${config.borderColor} border-2`}>
+      <Card className={`${config.bgColor} ${config.borderColor} ${config.glowColor} border-2 shadow-soft hover:shadow-medium transition-all duration-300 backdrop-blur-sm`}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center justify-between text-xs sm:text-sm font-medium">
+          <CardTitle className="flex items-center justify-between text-xs sm:text-sm font-medium text-foreground">
             <span className="flex items-center space-x-1 sm:space-x-2">
-              <Activity className="h-4 w-4 text-muted-foreground" />
-              <span className="hidden sm:inline">Monitoring System</span>
-              <span className="sm:hidden">Monitor</span>
+              <Activity className="h-4 w-4 text-primary/80" />
+              <span className="hidden sm:inline font-semibold">Monitoring System</span>
+              <span className="sm:hidden font-semibold">Monitor</span>
             </span>
             <motion.div
               animate={{ 
@@ -178,22 +181,22 @@ export function SystemStatusIndicator({ location, systemId }: StatusIndicatorPro
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="space-y-1">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className={`text-sm font-semibold ${config.color}`}>
+              <span className={`text-sm font-bold ${config.color} tracking-wide`}>
                 {config.label}
               </span>
-              <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+              <div className="flex items-center space-x-1 text-xs text-muted-foreground/80 bg-muted/30 px-2 py-1 rounded-full">
                 <Clock className="h-3 w-3" />
-                <span>{lastSeenText}</span>
+                <span className="font-medium">{lastSeenText}</span>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               {config.description}
             </p>
             {systemStatus?.location && (
-              <p className="text-xs text-muted-foreground">
-                Location: {systemStatus.location}
+              <p className="text-xs text-muted-foreground/80 bg-muted/20 px-2 py-1 rounded">
+                📍 {systemStatus.location}
               </p>
             )}
           </div>
