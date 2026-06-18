@@ -13,7 +13,7 @@ export function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, enterDemoMode } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,7 +37,7 @@ export function Login() {
         
         if (isNetworkErr) {
           toast.loading('Supabase is down. Bypassing login with Demo Mode...')
-          await signIn('demo@smartpark.com', 'password123')
+          enterDemoMode()
           toast.dismiss()
           toast.success('Bypassed login. Welcome to Demo Mode!')
           navigate('/dashboard')
@@ -50,7 +50,7 @@ export function Login() {
       }
     } catch (err) {
       toast.loading('Connection failure. Bypassing login with Demo Mode...')
-      await signIn('demo@smartpark.com', 'password123')
+      enterDemoMode()
       toast.dismiss()
       toast.success('Bypassed login. Welcome to Demo Mode!')
       navigate('/dashboard')
@@ -62,7 +62,7 @@ export function Login() {
   const handleDemoBypass = async () => {
     setIsLoading(true)
     try {
-      await signIn('demo@smartpark.com', 'password123')
+      enterDemoMode()
       toast.success('Bypassed login. Welcome to Demo Mode!')
       navigate('/dashboard')
     } catch (err) {

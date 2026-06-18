@@ -8,16 +8,26 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
+  enterDemoMode: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Get initial user
+
+    const demoUser = localStorage.getItem('demo_user')
+
+    if (demoUser) {
+      setUser(JSON.parse(demoUser))
+      setLoading(false)
+      return
+    }
+
     supabase.auth.getUser()
       .then(({ data: { user } }) => {
         setUser(user)
@@ -54,8 +64,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error }
   }
 
+
+  const enterDemoMode = () => {
+    const demoUser = {
+      id: 'demo-user',
+      email: 'demo@smartpark.com',
+    }
+
+    localStorage.setItem(
+      'demo_user',
+      JSON.stringify(demoUser)
+    )
+
+    setUser(demoUser)
+  }
+
   const signOut = async () => {
+    localStorage.removeItem('demo_user')
     await supabase.auth.signOut()
+    setUser(null)
   }
 
   const value = {
@@ -64,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
+    enterDemoMode,
   }
 
   return (
