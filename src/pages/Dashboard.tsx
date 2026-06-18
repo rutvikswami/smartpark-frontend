@@ -211,18 +211,14 @@ export function Dashboard() {
   })
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-300">
-      <div className="space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8"
-        >
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-gradient mb-2">Dashboard</h1>
-            <p className="text-muted-foreground">Monitor and manage your parking slots in real-time</p>
-          </div>
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4"
+      >
+        <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:space-x-4">
           {selectedArea && (
             <button
@@ -230,7 +226,7 @@ export function Dashboard() {
                 const url = `https://www.google.pt/maps/search/${encodeURIComponent(selectedArea.name)}/@${selectedArea.lat},${selectedArea.lng},17z`
                 window.open(url, '_blank')
               }}
-              className="flex items-center justify-center space-x-2 px-4 py-2 text-sm bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:shadow-medium hover:-translate-y-0.5 transition-all duration-300"
+              className="flex items-center justify-center space-x-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <ExternalLink className="h-4 w-4" />
               <span className="hidden sm:inline">View in Google Maps</span>
@@ -239,12 +235,12 @@ export function Dashboard() {
           )}
           <div className="w-full sm:w-64">
             <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
-              <SelectTrigger className="bg-card border-border shadow-soft hover:shadow-medium transition-all duration-300">
+              <SelectTrigger>
                 <SelectValue placeholder="Select parking area" />
               </SelectTrigger>
-              <SelectContent className="bg-card border-border shadow-large">
+              <SelectContent>
                 {parkingAreas.map((area) => (
-                  <SelectItem key={area.id} value={area.id} className="hover:bg-accent/50 transition-colors">
+                  <SelectItem key={area.id} value={area.id}>
                     {area.name}
                   </SelectItem>
                 ))}
@@ -252,117 +248,102 @@ export function Dashboard() {
             </Select>
           </div>
         </div>
-        </motion.div>
+      </motion.div>
 
-        {/* Stats Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6"
-        >
-          <Card className="bg-card border-border shadow-soft hover:shadow-medium card-hover">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Slots</CardTitle>
-              <Car className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-foreground">{selectedArea?.total_slots || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">Available spaces</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card border-border shadow-soft hover:shadow-medium card-hover bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-400">Free Slots</CardTitle>
-              <MapPin className="h-5 w-5 text-green-600 dark:text-green-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-green-700 dark:text-green-400">{occupancyData.free}</div>
-              <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">Ready to use</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card border-border shadow-soft hover:shadow-medium card-hover bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/20 dark:to-red-900/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-red-700 dark:text-red-400">Occupied</CardTitle>
-              <Users className="h-5 w-5 text-red-600 dark:text-red-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-red-700 dark:text-red-400">{occupancyData.occupied}</div>
-              <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-1">Currently in use</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card border-border shadow-soft hover:shadow-medium card-hover bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/20 dark:to-yellow-900/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-yellow-700 dark:text-yellow-400">Reserved</CardTitle>
-              <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-yellow-700 dark:text-yellow-400">{occupancyData.reserved}</div>
-              <p className="text-xs text-yellow-600/70 dark:text-yellow-400/70 mt-1">Upcoming bookings</p>
-            </CardContent>
-          </Card>
+      {/* Stats Cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6"
+      >
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Slots</CardTitle>
+            <Car className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl sm:text-2xl font-bold">{selectedArea?.total_slots || 0}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Free Slots</CardTitle>
+            <MapPin className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl sm:text-2xl font-bold text-green-600">{occupancyData.free}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Occupied</CardTitle>
+            <Users className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl sm:text-2xl font-bold text-red-600">{occupancyData.occupied}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Reserved</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl sm:text-2xl font-bold text-yellow-600">{occupancyData.reserved}</div>
+          </CardContent>
+        </Card>
 
-          {/* System Status Indicator */}
-          <div className="col-span-2 sm:col-span-2 md:col-span-3 lg:col-span-1">
-            <SystemStatusIndicator 
-              systemId={selectedArea ? `parking_monitor_${selectedArea.name.toLowerCase().replace(/\s+/g, '_')}` : undefined}
-              location={selectedArea?.name}
+        {/* System Status Indicator */}
+        <div className="col-span-2 sm:col-span-2 md:col-span-3 lg:col-span-1">
+          <SystemStatusIndicator 
+            systemId={selectedArea ? `parking_monitor_${selectedArea.name.toLowerCase().replace(/\s+/g, '_')}` : undefined}
+            location={selectedArea?.name}
+          />
+        </div>
+      </motion.div>
+
+      {/* Charts */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
+      >
+        <OccupancyChart data={occupancyData} />
+        <PredictionChart data={predictionChartData} />
+      </motion.div>
+
+      {/* Slot Grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>Parking Slots - {selectedArea?.name}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <SlotGrid
+              slots={slots}
+              onReserveSlot={handleReserveSlot}
+              userReservations={userReservations}
             />
-          </div>
-        </motion.div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
-        {/* Charts */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-        >
-          <div className="bg-card rounded-lg border-border shadow-soft hover:shadow-medium transition-all duration-300">
-            <OccupancyChart data={occupancyData} />
-          </div>
-          <div className="bg-card rounded-lg border-border shadow-soft hover:shadow-medium transition-all duration-300">
-            <PredictionChart data={predictionChartData} />
-          </div>
-        </motion.div>
-
-        {/* Slot Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="bg-card border-border shadow-soft hover:shadow-medium transition-all duration-300">
-            <CardHeader className="bg-gradient-to-r from-primary/5 to-secondary/5 border-b border-border">
-              <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
-                <Car className="h-5 w-5 text-primary" />
-                Parking Slots - {selectedArea?.name}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Click on a free slot to reserve it
-              </p>
-            </CardHeader>
-            <CardContent className="p-0">
-              <SlotGrid
-                slots={slots}
-                onReserveSlot={handleReserveSlot}
-                userReservations={userReservations}
-              />
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Reserve Slot Dialog */}
-        <ReserveSlotDialog
-          isOpen={!!reserveSlotId}
-          onClose={() => setReserveSlotId('')}
-          onConfirm={handleConfirmReservation}
-          slotNumber={selectedSlotNumber}
-        />
-      </div>
+      {/* Reserve Slot Dialog */}
+      <ReserveSlotDialog
+        isOpen={!!reserveSlotId}
+        onClose={() => setReserveSlotId('')}
+        onConfirm={handleConfirmReservation}
+        slotNumber={selectedSlotNumber}
+      />
     </div>
   )
 }
